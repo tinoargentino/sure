@@ -1,6 +1,9 @@
 class Investment < ApplicationRecord
   include Accountable
 
+  has_many :investment_positions, dependent: :destroy
+  has_many :investment_transactions, dependent: :destroy
+
   SUBTYPES = {
     "brokerage" => { short: "Brokerage", long: "Brokerage" },
     "pension" => { short: "Pension", long: "Pension" },
@@ -16,6 +19,61 @@ class Investment < ApplicationRecord
     "roth_ira" => { short: "Roth IRA", long: "Roth IRA" },
     "angel" => { short: "Angel", long: "Angel" }
   }.freeze
+
+  def portfolio_metrics
+    {
+      total_invested: total_invested_amount,
+      total_market_value: total_market_value_amount,
+      cagr_percent: portfolio_cagr,
+      inception_date: inception_date,
+      last_updated: last_calculated_at
+    }
+  end
+
+  def positions_with_cagr
+    investment_positions.order(cagr_percent: :desc)
+  end
+
+  def total_invested_amount
+    investment_transactions
+      .where(transaction_type: [:buy, :deposit])
+      .sum(:amount)
+      .abs
+  end
+
+  def total_market_value_amount
+    total_invested_amount
+  end
+
+  def portfolio_cagr
+    return nil if investment_transactions.empty?
+
+    all_transactions = investment_transactions.order(:transaction_date)
+    return nil if all_transactions.length < 2
+
+    cash_flows = all_transactions.map do |txn|
+      {
+        date: txn.transaction_date,
+        amount: -txn.amount
+      }
+    end
+
+    ending_value = investment_positions.sum { |pos| pos.current_market_value || 0 }
+
+    InvestmentMetrics::CAGRCalculator.calculate(
+      cash_flows: cash_flows,
+      ending_value: ending_value,
+      inception_date: all_transactions.first.transaction_date
+    )
+  end
+
+  def inception_date
+    investment_transactions.order(:transaction_date).first&.transaction_date
+  end
+
+  def last_calculated_at
+    investment_positions.maximum(:cagr_calculated_at) || Time.current
+  end
 
   class << self
     def color

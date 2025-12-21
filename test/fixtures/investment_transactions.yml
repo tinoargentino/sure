@@ -1,0 +1,47 @@
+vtsax_buy:
+  investment: investment
+  investment_position: vtsax
+  transaction_type: buy
+  source: csv
+  ticker: VTSAX
+  quantity: 100
+  price_per_unit: 8550
+  amount: 855000
+  transaction_date: 2024-01-15
+  currency: USD
+
+aapl_buy:
+  investment: investment
+  investment_position: aapl
+  transaction_type: buy
+  source: csv
+  ticker: AAPL
+  quantity: 10
+  price_per_unit: 17500
+  amount: 175000
+  transaction_date: 2024-03-10
+  currency: USD
+
+aapl_sell:
+  investment: investment
+  investment_position: aapl
+  transaction_type: sell
+  source: csv
+  ticker: AAPL
+  quantity: 5
+  price_per_unit: 19500
+  amount: -97500
+  transaction_date: 2024-06-20
+  currency: USD
+
+vtsax_dividend:
+  investment: investment
+  investment_position: vtsax
+  transaction_type: dividend
+  source: csv
+  ticker: VTSAX
+  quantity:
+  price_per_unit:
+  amount: 12345
+  transaction_date: 2024-12-15
+  currency: USD
