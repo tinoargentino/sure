@@ -27,6 +27,8 @@ en:
         title: Configure your import
       trade_import:
         date_format_label: Date format
+      investment_import:
+        date_format_label: Date format
       transaction_import:
         date_format_label: Date format
     confirms:
@@ -93,6 +95,7 @@ en:
       import_categories: Import categories
       import_mint: Import from Mint
       import_portfolio: Import investments
+      import_investments: Import investment transactions
       import_rules: Import rules
       import_transactions: Import transactions
       resume: Resume %{type}

@@ -1,5 +1,5 @@
 module InvestmentMetrics
-  class CAGRCalculator
+  class CagrCalculator
     def self.calculate(cash_flows:, ending_value:, inception_date:, current_date: Date.today)
       calc = new(cash_flows, ending_value, inception_date, current_date)
       calc.cagr

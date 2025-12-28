@@ -54,13 +54,13 @@ class Investment < ApplicationRecord
     cash_flows = all_transactions.map do |txn|
       {
         date: txn.transaction_date,
-        amount: -txn.amount
+        amount: -txn.amount  # Negate: Sure stores positive=outflow, IRR needs negative=outflow
       }
     end
 
     ending_value = investment_positions.sum { |pos| pos.current_market_value || 0 }
 
-    InvestmentMetrics::CAGRCalculator.calculate(
+    InvestmentMetrics::CagrCalculator.calculate(
       cash_flows: cash_flows,
       ending_value: ending_value,
       inception_date: all_transactions.first.transaction_date
@@ -73,6 +73,38 @@ class Investment < ApplicationRecord
 
   def last_calculated_at
     investment_positions.maximum(:cagr_calculated_at) || Time.current
+  end
+
+  def portfolio_benchmark_cagr
+    return nil if investment_transactions.empty?
+
+    all_transactions = investment_transactions.order(:transaction_date)
+    return nil if all_transactions.length < 2
+
+    cash_flows = all_transactions.map do |txn|
+      {
+        date: txn.transaction_date,
+        amount: -txn.amount  # Negate: Sure stores positive=outflow, IRR needs negative=outflow
+      }
+    end
+
+    InvestmentMetrics::BenchmarkCalculator.calculate_benchmark_return(
+      cash_flows: cash_flows,
+      benchmark_ticker: benchmark_ticker || "SPY"
+    )
+  end
+
+  def portfolio_alpha
+    cagr = portfolio_cagr
+    benchmark = portfolio_benchmark_cagr
+
+    return nil if cagr.nil? || benchmark.nil?
+
+    (cagr - benchmark).round(2)
+  end
+
+  def benchmark_ticker_display
+    benchmark_ticker || "SPY"
   end
 
   class << self

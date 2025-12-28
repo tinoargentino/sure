@@ -1,0 +1,96 @@
+<% content_for :page_header do %>
+  <div class="space-y-4 mb-6">
+    <div class="flex justify-between items-center">
+      <div class="space-y-1">
+        <h1 class="text-xl lg:text-3xl font-medium text-primary">
+          <%= t(".title") %>
+        </h1>
+        <p class="text-sm lg:text-base text-secondary">
+          <%= t(".subtitle") %>
+        </p>
+      </div>
+      <%= render DS::Link.new(
+        text: t(".new_account"),
+        href: new_investment_path,
+        variant: "primary",
+        icon: "plus",
+        frame: :modal
+      ) %>
+    </div>
+  </div>
+<% end %>
+
+<div class="space-y-6">
+  <% if @accounts.any? %>
+    <div class="grid gap-4">
+      <% @accounts.each do |account| %>
+        <% investment = account.accountable %>
+        <% metrics = investment.portfolio_metrics %>
+        <%= link_to investment_path(account), class: "block bg-container rounded-xl shadow-border-xs p-5 hover:shadow-border-md transition-all" do %>
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <%= icon("chart-line", class: "text-primary") %>
+              <div>
+                <h3 class="font-medium text-primary"><%= account.name %></h3>
+                <p class="text-sm text-secondary"><%= account.currency %></p>
+              </div>
+            </div>
+            <div class="text-right">
+              <p class="text-lg font-medium text-primary">
+                <%= number_to_currency(metrics[:total_invested], unit: Money::Currency.new(account.currency).symbol) %>
+              </p>
+              <p class="text-sm text-secondary"><%= t(".total_invested") %></p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-4 gap-4 pt-4 border-t border-primary">
+            <div>
+              <p class="text-sm text-secondary"><%= t(".positions") %></p>
+              <p class="font-medium text-primary"><%= investment.investment_positions.count %></p>
+            </div>
+            <div>
+              <p class="text-sm text-secondary"><%= t(".transactions") %></p>
+              <p class="font-medium text-primary"><%= investment.investment_transactions.count %></p>
+            </div>
+            <div>
+              <p class="text-sm text-secondary"><%= t(".cagr") %></p>
+              <% if metrics[:cagr_percent].present? %>
+                <p class="font-medium <%= metrics[:cagr_percent] >= 0 ? 'text-success' : 'text-destructive' %>">
+                  <%= number_to_percentage(metrics[:cagr_percent], precision: 1) %>
+                </p>
+              <% else %>
+                <p class="font-medium text-secondary">--</p>
+              <% end %>
+            </div>
+            <div>
+              <p class="text-sm text-secondary">vs <%= investment.benchmark_ticker_display %></p>
+              <% portfolio_alpha = investment.portfolio_alpha %>
+              <% if portfolio_alpha.present? %>
+                <p class="font-medium <%= portfolio_alpha >= 0 ? 'text-success' : 'text-destructive' %>">
+                  <%= portfolio_alpha >= 0 ? '+' : '' %><%= number_to_percentage(portfolio_alpha, precision: 1) %>
+                </p>
+              <% else %>
+                <p class="font-medium text-secondary">--</p>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="bg-container rounded-xl shadow-border-xs p-8 text-center">
+      <div class="max-w-sm mx-auto space-y-4">
+        <%= icon("chart-line", size: "lg", class: "text-secondary mx-auto") %>
+        <h3 class="font-medium text-primary"><%= t(".empty_title") %></h3>
+        <p class="text-sm text-secondary"><%= t(".empty_description") %></p>
+        <%= render DS::Link.new(
+          text: t(".new_account"),
+          href: new_investment_path,
+          variant: "primary",
+          icon: "plus",
+          frame: :modal
+        ) %>
+      </div>
+    </div>
+  <% end %>
+</div>

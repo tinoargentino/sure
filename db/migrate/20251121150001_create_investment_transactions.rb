@@ -1,4 +1,4 @@
-class CreateInvestmentTransactions < ActiveRecord::Migration[7.0]
+class CreateInvestmentTransactions < ActiveRecord::Migration[7.2]
   def change
     create_table :investment_transactions, id: :uuid, default: -> { "gen_random_uuid()" } do |t|
       t.uuid :investment_id, null: false

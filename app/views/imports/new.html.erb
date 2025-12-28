@@ -65,6 +65,26 @@
           </li>
         <% end %>
 
+        <% if Current.family.accounts.any? && (params[:type].nil? || params[:type] == "InvestmentImport") %>
+          <li>
+            <%= button_to imports_path(import: { type: "InvestmentImport", account_id: params[:account_id] }), class: "flex items-center justify-between p-4 group cursor-pointer w-full", data: { turbo: false } do %>
+              <div class="flex items-center gap-2">
+                <div class="bg-green-500/5 rounded-md w-8 h-8 flex items-center justify-center">
+                  <span class="text-green-500">
+                    <%= icon("trending-up", color: "current") %>
+                  </span>
+                </div>
+                <span class="text-sm text-primary group-hover:text-secondary">
+                  <%= t(".import_investments") %>
+                </span>
+              </div>
+              <%= icon("chevron-right") %>
+            <% end %>
+
+            <%= render "shared/ruler" %>
+          </li>
+        <% end %>
+
         <% if params[:type].nil? || params[:type] == "AccountImport" %>
           <li>
             <%= button_to imports_path(import: { type: "AccountImport" }), class: "flex items-center justify-between p-4 group cursor-pointer w-full", data: { turbo: false } do %>

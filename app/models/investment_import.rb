@@ -3,6 +3,9 @@ class InvestmentImport < Import
     transaction do
       mappings.each(&:create_mappable!)
 
+      # Group rows by investment and ticker to pre-create positions
+      positions_cache = {}
+
       investment_txns = rows.map do |row|
         mapped_investment = if account
           account.accountable
@@ -13,18 +16,50 @@ class InvestmentImport < Import
 
         raise "Account must be an Investment account" unless mapped_investment.is_a?(Investment)
 
+        # Normalize the transaction type from various brokerage formats
+        raw_type = row.transaction_type.to_s
+        normalized_type = InvestmentTransaction.normalize_transaction_type(raw_type)
+
+        # Build metadata with original type if it was mapped to "other"
+        metadata = {}
+        if normalized_type == :other && raw_type.present?
+          metadata["original_type"] = raw_type.upcase
+        end
+
+        # Determine amount based on transaction type
+        # - stock_split, other: always 0 (no cash flow)
+        # - All others: use the provided amount
+        amount = if %i[stock_split other].include?(normalized_type)
+          0
+        elsif row.amount.blank?
+          0  # Default to 0 if not provided
+        else
+          row.signed_amount
+        end
+
+        # Find or create position for this ticker (skip for deposits/withdrawals)
+        position = nil
+        if row.ticker.present? && !%i[deposit withdrawal].include?(normalized_type)
+          cache_key = "#{mapped_investment.id}:#{row.ticker}"
+          position = positions_cache[cache_key] ||= mapped_investment.investment_positions.find_or_create_by!(ticker: row.ticker) do |pos|
+            pos.inception_date = row.date_iso
+          end
+        end
+
         InvestmentTransaction.new(
           investment: mapped_investment,
+          investment_position: position,
           ticker: row.ticker,
-          transaction_type: row.transaction_type,
+          transaction_type: normalized_type,
           source: :csv,
-          quantity: row.quantity,
+          quantity: row.qty,
           price_per_unit: row.price,
-          amount: row.signed_amount,
+          amount: amount,
           transaction_date: row.date_iso,
           currency: row.currency.presence || mapped_investment.account.currency,
-          external_id: row.external_id,
-          notes: row.notes
+          external_id: row.external_id.presence,
+          notes: row.notes.presence,
+          metadata: metadata.presence
         )
       end
 
@@ -39,7 +74,9 @@ class InvestmentImport < Import
   end
 
   def required_column_keys
-    %i[date transaction_type amount]
+    # Note: amount is NOT required - stock splits and other types have no cash flow
+    # For splits, quantity is the key field (shares awarded)
+    %i[date transaction_type]
   end
 
   def column_keys
@@ -60,19 +97,19 @@ class InvestmentImport < Import
 
   def csv_template
     template = <<-CSV
-      date*,ticker,transaction_type*,quantity,price,amount*,currency,external_id,notes,account
+      date*,ticker,transaction_type*,quantity,price,amount,currency,external_id,notes,account
       2024-01-15,VTSAX,BUY,100,85.50,-8550.00,USD,,Vanguard Total Stock Market Fund,My Brokerage
       2024-03-10,AAPL,BUY,10,175.00,-1750.00,USD,,Apple Inc. shares,My Brokerage
       2024-06-20,AAPL,SELL,5,195.00,975.00,USD,,Partial sale,My Brokerage
+      2024-07-15,GOOGL,SPL,190,,,USD,,20:1 stock split (190 shares awarded),My Brokerage
       2024-12-15,VTSAX,DIVIDEND,,,123.45,USD,,Annual dividend,My Brokerage
+      2024-12-20,VTSAX,SCAP,,,50.00,USD,,Short-term capital gain distribution,My Brokerage
     CSV
 
     csv = CSV.parse(template, headers: true)
     csv.delete("account") if account.present?
     csv
   end
-
-  private
 
   def generate_rows_from_csv
     rows.destroy_all
@@ -83,7 +120,7 @@ class InvestmentImport < Import
         date: row[date_col_label].to_s,
         ticker: row[ticker_col_label].to_s,
         transaction_type: row[transaction_type_col_label].to_s,
-        quantity: sanitize_number(row[qty_col_label]).to_s,
+        qty: sanitize_number(row[qty_col_label]).to_s,
         price: sanitize_number(row[price_col_label]).to_s,
         amount: sanitize_number(row[amount_col_label]).to_s,
         currency: (row[currency_col_label] || default_currency).to_s,

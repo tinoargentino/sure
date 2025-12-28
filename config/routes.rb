@@ -234,7 +234,11 @@ Rails.application.routes.draw do
   end
 
   resources :depositories, only: %i[new create edit update]
-  resources :investments, only: %i[new create edit update]
+  resources :investments, only: %i[index show new create edit update] do
+    member do
+      patch :update_benchmark
+    end
+  end
   resources :properties, only: %i[new create edit update] do
     member do
       get :balances

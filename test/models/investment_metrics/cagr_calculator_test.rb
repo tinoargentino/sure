@@ -1,8 +1,8 @@
 require "test_helper"
 
-class InvestmentMetrics::CAGRCalculatorTest < ActiveSupport::TestCase
+class InvestmentMetrics::CagrCalculatorTest < ActiveSupport::TestCase
   test "returns nil if less than 2 cash flows" do
-    cagr = InvestmentMetrics::CAGRCalculator.calculate(
+    cagr = InvestmentMetrics::CagrCalculator.calculate(
       cash_flows: [{ date: Date.today, amount: -1000 }],
       ending_value: 1100,
       inception_date: Date.today
@@ -14,7 +14,7 @@ class InvestmentMetrics::CAGRCalculatorTest < ActiveSupport::TestCase
     start_date = Date.today
     end_date = start_date + 2.days
 
-    cagr = InvestmentMetrics::CAGRCalculator.calculate(
+    cagr = InvestmentMetrics::CagrCalculator.calculate(
       cash_flows: [
         { date: start_date, amount: -1000 },
         { date: end_date, amount: 0 }
@@ -27,7 +27,7 @@ class InvestmentMetrics::CAGRCalculatorTest < ActiveSupport::TestCase
   end
 
   test "returns nil if inception date is after current date" do
-    cagr = InvestmentMetrics::CAGRCalculator.calculate(
+    cagr = InvestmentMetrics::CagrCalculator.calculate(
       cash_flows: [
         { date: Date.today, amount: -1000 },
         { date: Date.today + 365.days, amount: 0 }
@@ -44,7 +44,7 @@ class InvestmentMetrics::CAGRCalculatorTest < ActiveSupport::TestCase
     inception = Date.new(2024, 1, 1)
     current = Date.new(2025, 1, 1)
 
-    cagr = InvestmentMetrics::CAGRCalculator.calculate(
+    cagr = InvestmentMetrics::CagrCalculator.calculate(
       cash_flows: [{ date: inception, amount: -1000 }],
       ending_value: 1100,
       inception_date: inception,
@@ -59,7 +59,7 @@ class InvestmentMetrics::CAGRCalculatorTest < ActiveSupport::TestCase
     inception = Date.new(2024, 1, 1)
     current = Date.new(2025, 1, 1)
 
-    cagr = InvestmentMetrics::CAGRCalculator.calculate(
+    cagr = InvestmentMetrics::CagrCalculator.calculate(
       cash_flows: [{ date: inception, amount: -1000 }],
       ending_value: 800,
       inception_date: inception,
@@ -74,7 +74,7 @@ class InvestmentMetrics::CAGRCalculatorTest < ActiveSupport::TestCase
     inception = Date.new(2024, 1, 1)
     current = Date.new(2026, 1, 1)
 
-    cagr = InvestmentMetrics::CAGRCalculator.calculate(
+    cagr = InvestmentMetrics::CagrCalculator.calculate(
       cash_flows: [
         { date: Date.new(2024, 1, 1), amount: -5000 },
         { date: Date.new(2024, 6, 1), amount: -2500 },
@@ -92,7 +92,7 @@ class InvestmentMetrics::CAGRCalculatorTest < ActiveSupport::TestCase
     inception = Date.new(2024, 1, 1)
     current = Date.new(2025, 1, 1)
 
-    cagr = InvestmentMetrics::CAGRCalculator.calculate(
+    cagr = InvestmentMetrics::CagrCalculator.calculate(
       cash_flows: [{ date: inception, amount: -1000 }],
       ending_value: 1099,
       inception_date: inception,
@@ -107,7 +107,7 @@ class InvestmentMetrics::CAGRCalculatorTest < ActiveSupport::TestCase
     inception = Date.new(2024, 1, 1)
     current = Date.new(2025, 1, 1)
 
-    cagr = InvestmentMetrics::CAGRCalculator.calculate(
+    cagr = InvestmentMetrics::CagrCalculator.calculate(
       cash_flows: [{ date: inception, amount: -1000 }],
       ending_value: 0,
       inception_date: inception,
@@ -122,7 +122,7 @@ class InvestmentMetrics::CAGRCalculatorTest < ActiveSupport::TestCase
     inception = Date.new(2024, 1, 1)
     current = Date.new(2025, 1, 1)
 
-    cagr = InvestmentMetrics::CAGRCalculator.calculate(
+    cagr = InvestmentMetrics::CagrCalculator.calculate(
       cash_flows: [{ date: inception, amount: -1000 }],
       ending_value: 5000,
       inception_date: inception,

@@ -8,8 +8,57 @@ en:
       subtype_prompt: Select investment type
     new:
       title: Enter account balance
+    index:
+      title: Investments
+      subtitle: Track your investment portfolio performance and CAGR
+      new_account: New account
+      total_invested: Total invested
+      positions: Positions
+      transactions: Transactions
+      cagr: CAGR
+      alpha_vs_spy: vs SPY
+      empty_title: No investment accounts yet
+      empty_description: Create an investment account to start tracking your portfolio performance and CAGR.
     show:
+      subtitle: Investment portfolio with CAGR tracking
+      import_csv: Import CSV
+      edit: Edit
+      portfolio_metrics: Portfolio Metrics
+      benchmark: Benchmark
+      total_invested: Total Invested
+      current_value: Current Value
+      portfolio_cagr: Portfolio CAGR
+      inception_date: Since
+      positions: Positions
+      positions_count:
+        one: "%{count} position"
+        other: "%{count} positions"
+      ticker: Ticker
+      quantity: Quantity
+      cost_basis: Cost Basis
+      cagr: CAGR
+      alpha_vs_spy: vs SPY
+      transactions_count: Transactions
+      no_positions: No positions yet
+      import_hint: Import a CSV file to add your investment transactions.
+      recent_transactions: Recent Transactions
+      no_transactions: No transactions yet
+      qty: Qty
+      price: Price
       chart_title: Total value
+      needs_review: Needs review
+      transaction_types:
+        buy: Buy
+        sell: Sell
+        dividend: Dividend
+        fee: Fee
+        stock_split: Split
+        deposit: Deposit
+        withdrawal: Withdrawal
+        capital_gain: Cap Gain
+        tax_withheld: Tax
+        interest: Interest
+        other: Unknown
     value_tooltip:
       cash: Cash
       holdings: Holdings

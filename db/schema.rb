@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_12_15_100443) do
+ActiveRecord::Schema[7.2].define(version: 2025_12_28_075105) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -502,6 +502,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_15_100443) do
     t.string "effective_date"
     t.text "conditions"
     t.text "actions"
+    t.string "transaction_type"
+    t.string "external_id"
     t.index ["import_id"], name: "index_import_rows_on_import_id"
   end
 
@@ -535,7 +537,42 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_15_100443) do
     t.string "exchange_operating_mic_col_label"
     t.string "amount_type_strategy", default: "signed_amount"
     t.string "amount_type_inflow_value"
+    t.string "transaction_type_col_label"
+    t.string "external_id_col_label"
     t.index ["family_id"], name: "index_imports_on_family_id"
+  end
+
+  create_table "investment_positions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "investment_id", null: false
+    t.string "ticker", null: false
+    t.date "inception_date", null: false
+    t.decimal "cagr_percent", precision: 10, scale: 2
+    t.datetime "cagr_calculated_at"
+    t.jsonb "metadata", default: {}
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["investment_id", "ticker"], name: "index_investment_positions_on_investment_id_and_ticker", unique: true
+  end
+
+  create_table "investment_transactions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "investment_id", null: false
+    t.uuid "investment_position_id"
+    t.integer "transaction_type", null: false
+    t.integer "source", default: 0, null: false
+    t.string "ticker"
+    t.decimal "quantity", precision: 19, scale: 8
+    t.decimal "price_per_unit", precision: 19, scale: 8
+    t.bigint "amount", null: false
+    t.date "transaction_date", null: false
+    t.string "external_id"
+    t.string "currency", null: false
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.jsonb "metadata"
+    t.index ["investment_id", "external_id"], name: "index_investment_transactions_on_investment_id_and_external_id", unique: true, where: "(external_id IS NOT NULL)"
+    t.index ["investment_id", "transaction_date"], name: "idx_on_investment_id_transaction_date_76b0b29ad8"
+    t.index ["investment_position_id"], name: "index_investment_transactions_on_investment_position_id"
   end
 
   create_table "investments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -543,6 +580,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_15_100443) do
     t.datetime "updated_at", null: false
     t.jsonb "locked_attributes", default: {}
     t.string "subtype"
+    t.string "benchmark_ticker", default: "SPY"
   end
 
   create_table "invitations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -1182,6 +1220,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_12_15_100443) do
   add_foreign_key "impersonation_sessions", "users", column: "impersonator_id"
   add_foreign_key "import_rows", "imports"
   add_foreign_key "imports", "families"
+  add_foreign_key "investment_positions", "investments"
+  add_foreign_key "investment_transactions", "investment_positions"
+  add_foreign_key "investment_transactions", "investments"
   add_foreign_key "invitations", "families"
   add_foreign_key "invitations", "users", column: "inviter_id"
   add_foreign_key "llm_usages", "families"
