@@ -42,7 +42,7 @@ class Investment < ApplicationRecord
   end
 
   def total_market_value_amount
-    total_invested_amount
+    investment_positions.sum { |pos| pos.current_market_value || 0 }
   end
 
   def portfolio_cagr

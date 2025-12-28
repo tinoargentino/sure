@@ -59,6 +59,21 @@ class InvestmentImport < Import
       end
 
       InvestmentTransaction.import!(investment_txns)
+
+      # Update account balances based on position market values
+      update_account_balances(positions_cache.values)
+    end
+  end
+
+  def update_account_balances(positions)
+    # Group positions by investment and update each account's balance
+    positions.group_by(&:investment).each do |investment, _|
+      account = investment.account
+      next unless account
+
+      # Calculate total market value from all positions
+      total_value = investment.total_market_value_amount
+      account.update!(balance: total_value)
     end
   end
 
