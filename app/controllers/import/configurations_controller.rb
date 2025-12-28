@@ -34,6 +34,8 @@ class Import::ConfigurationsController < ApplicationController
         :entity_type_col_label,
         :notes_col_label,
         :currency_col_label,
+        :transaction_type_col_label,
+        :external_id_col_label,
         :date_format,
         :number_format,
         :signage_convention,
