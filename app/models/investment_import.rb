@@ -1,4 +1,6 @@
 class InvestmentImport < Import
+  before_validation :set_default_amount_type_strategy
+
   def import!
     transaction do
       mappings.each(&:create_mappable!)
@@ -80,7 +82,7 @@ class InvestmentImport < Import
   end
 
   def column_keys
-    base = %i[date ticker transaction_type quantity price amount currency external_id notes]
+    base = %i[date ticker transaction_type qty price amount currency external_id notes]
     base.unshift(:account) if account.nil?
     base
   end
@@ -131,4 +133,10 @@ class InvestmentImport < Import
 
     rows.insert_all!(mapped_rows)
   end
+
+  private
+
+    def set_default_amount_type_strategy
+      self.amount_type_strategy ||= "signed_amount"
+    end
 end

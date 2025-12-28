@@ -36,7 +36,7 @@ class Investment < ApplicationRecord
 
   def total_invested_amount
     investment_transactions
-      .where(transaction_type: [:buy, :deposit])
+      .where(transaction_type: [ :buy, :deposit ])
       .sum(:amount)
       .abs
   end
@@ -49,7 +49,6 @@ class Investment < ApplicationRecord
     return nil if investment_transactions.empty?
 
     all_transactions = investment_transactions.order(:transaction_date)
-    return nil if all_transactions.length < 2
 
     cash_flows = all_transactions.map do |txn|
       {
@@ -79,7 +78,6 @@ class Investment < ApplicationRecord
     return nil if investment_transactions.empty?
 
     all_transactions = investment_transactions.order(:transaction_date)
-    return nil if all_transactions.length < 2
 
     cash_flows = all_transactions.map do |txn|
       {

@@ -4,6 +4,10 @@ class FamilyResetJob < ApplicationJob
   def perform(family, load_sample_data_for_email: nil)
     # Delete all family data except users
     ActiveRecord::Base.transaction do
+      # Delete investment transactions first (positions have restrict_with_error)
+      investment_ids = family.accounts.where(accountable_type: "Investment").pluck(:accountable_id)
+      InvestmentTransaction.where(investment_id: investment_ids).delete_all
+
       # Delete accounts and related data
       family.accounts.destroy_all
       family.categories.destroy_all

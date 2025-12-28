@@ -51,7 +51,7 @@ investment:
   cash_balance: 5000
   currency: USD
   accountable_type: Investment
-  accountable: one
+  accountable: investment
   status: active
 
 loan:

@@ -24,7 +24,6 @@ class InvestmentPosition < ApplicationRecord
     return nil if investment_transactions.empty?
 
     txns = investment_transactions.order(:transaction_date)
-    return nil if txns.length < 2
 
     flows = cash_flows
     ending_value = current_market_value || 0

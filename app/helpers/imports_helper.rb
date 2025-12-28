@@ -26,7 +26,9 @@ module ImportsHelper
       category_parent: "Parent category",
       category_color: "Color",
       category_classification: "Classification",
-      category_icon: "Lucide icon"
+      category_icon: "Lucide icon",
+      transaction_type: "Trans Type",
+      external_id: "External ID"
     }[key]
   end
 
