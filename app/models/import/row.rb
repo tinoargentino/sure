@@ -25,6 +25,8 @@ class Import::Row < ApplicationRecord
   def signed_amount
     if import.type == "TradeImport"
       price.to_d * apply_trade_signage_convention(qty.to_d)
+    elsif import.type == "InvestmentImport"
+      apply_investment_signage_convention(amount.to_d)
     else
       apply_transaction_signage_convention(amount.to_d)
     end
@@ -39,6 +41,13 @@ class Import::Row < ApplicationRecord
   private
     # In the Sure system, positive quantities == "inflows"
     def apply_trade_signage_convention(value)
+      value * (import.signage_convention == "inflows_positive" ? 1 : -1)
+    end
+
+    # For investments, IRR needs: outflows (buys) negative, inflows (sells/dividends) positive
+    # "inflows_positive" means CSV already has this convention (e.g., Robinhood: buys negative, sells positive)
+    # "inflows_negative" means CSV has opposite convention (buys positive, sells negative) - need to flip
+    def apply_investment_signage_convention(value)
       value * (import.signage_convention == "inflows_positive" ? 1 : -1)
     end
 
