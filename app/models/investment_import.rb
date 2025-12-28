@@ -28,16 +28,9 @@ class InvestmentImport < Import
           metadata["original_type"] = raw_type.upcase
         end
 
-        # Determine amount based on transaction type
-        # - stock_split, other: always 0 (no cash flow)
-        # - All others: use the provided amount
-        amount = if %i[stock_split other].include?(normalized_type)
-          0
-        elsif row.amount.blank?
-          0  # Default to 0 if not provided
-        else
-          row.signed_amount
-        end
+        # Determine amount based on transaction type (sign derived from type, not CSV)
+        # IRR needs: outflows (buys) negative, inflows (sells/dividends) positive
+        amount = derive_amount_from_type(row.amount, normalized_type)
 
         # Find or create position for this ticker (skip for deposits/withdrawals)
         position = nil
@@ -98,10 +91,12 @@ class InvestmentImport < Import
   end
 
   def csv_template
+    # Amount signs are derived from transaction_type, so amounts can be positive or negative
+    # The system uses absolute value and applies correct sign based on type
     template = <<-CSV
       date*,ticker,transaction_type*,quantity,price,amount,currency,external_id,notes,account
-      2024-01-15,VTSAX,BUY,100,85.50,-8550.00,USD,,Vanguard Total Stock Market Fund,My Brokerage
-      2024-03-10,AAPL,BUY,10,175.00,-1750.00,USD,,Apple Inc. shares,My Brokerage
+      2024-01-15,VTSAX,BUY,100,85.50,8550.00,USD,,Vanguard Total Stock Market Fund,My Brokerage
+      2024-03-10,AAPL,BUY,10,175.00,1750.00,USD,,Apple Inc. shares,My Brokerage
       2024-06-20,AAPL,SELL,5,195.00,975.00,USD,,Partial sale,My Brokerage
       2024-07-15,GOOGL,SPL,190,,,USD,,20:1 stock split (190 shares awarded),My Brokerage
       2024-12-15,VTSAX,DIVIDEND,,,123.45,USD,,Annual dividend,My Brokerage
@@ -135,6 +130,25 @@ class InvestmentImport < Import
   end
 
   private
+
+    # Derive amount sign from transaction type (not from CSV convention)
+    # IRR calculation needs: outflows negative, inflows positive
+    def derive_amount_from_type(raw_amount, transaction_type)
+      return 0 if raw_amount.blank?
+
+      abs_amount = raw_amount.to_d.abs
+
+      case transaction_type
+      when :buy, :deposit
+        -abs_amount  # Outflow: money you paid
+      when :sell, :dividend, :withdrawal
+        abs_amount   # Inflow: money you received
+      when :stock_split, :other
+        0            # No cash flow
+      else
+        -abs_amount  # Default to outflow for unknown types
+      end
+    end
 
     def set_default_amount_type_strategy
       self.amount_type_strategy ||= "signed_amount"

@@ -15,10 +15,7 @@
       <%= form.select :price_col_label, import.csv_headers, { include_blank: "Select column", label: "Price" } %>
     </div>
 
-    <div class="flex items-center gap-4">
-      <%= form.select :amount_col_label, import.csv_headers, { include_blank: "Select column", label: "Amount" } %>
-      <%= form.select :signage_convention, [["Buys are negative amount (Robinhood)", "inflows_positive"], ["Buys are positive amount", "inflows_negative"]], { label: "Amount sign" }, required: true %>
-    </div>
+    <%= form.select :amount_col_label, import.csv_headers, { include_blank: "Select column", label: "Amount" } %>
 
     <div class="flex items-center gap-4">
       <%= form.select :currency_col_label, import.csv_headers, { include_blank: "Default", label: "Currency" } %>

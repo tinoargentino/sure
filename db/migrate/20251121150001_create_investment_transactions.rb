@@ -20,9 +20,9 @@ class CreateInvestmentTransactions < ActiveRecord::Migration[7.2]
       t.timestamps
     end
 
-    add_index :investment_transactions, [:investment_id, :transaction_date]
-    add_index :investment_transactions, [:investment_position_id]
-    add_index :investment_transactions, [:investment_id, :external_id], unique: true, where: "external_id IS NOT NULL"
+    add_index :investment_transactions, [ :investment_id, :transaction_date ]
+    add_index :investment_transactions, [ :investment_position_id ]
+    add_index :investment_transactions, [ :investment_id, :external_id ], unique: true, where: "external_id IS NOT NULL"
     add_foreign_key :investment_transactions, :investments, column: :investment_id
     add_foreign_key :investment_transactions, :investment_positions, column: :investment_position_id
   end

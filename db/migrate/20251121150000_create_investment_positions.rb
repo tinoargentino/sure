@@ -12,7 +12,7 @@ class CreateInvestmentPositions < ActiveRecord::Migration[7.2]
       t.timestamps
     end
 
-    add_index :investment_positions, [:investment_id, :ticker], unique: true
+    add_index :investment_positions, [ :investment_id, :ticker ], unique: true
     add_foreign_key :investment_positions, :investments, column: :investment_id
   end
 end

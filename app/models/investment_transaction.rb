@@ -85,13 +85,13 @@ class InvestmentTransaction < ApplicationRecord
 
   private
 
-  def should_derive_position?
-    ticker.present? && investment_position_id.blank? && !deposit? && !withdrawal?
-  end
-
-  def derive_position
-    self.investment_position = investment.investment_positions.find_or_create_by(ticker: ticker) do |pos|
-      pos.inception_date = transaction_date
+    def should_derive_position?
+      ticker.present? && investment_position_id.blank? && !deposit? && !withdrawal?
     end
-  end
+
+    def derive_position
+      self.investment_position = investment.investment_positions.find_or_create_by(ticker: ticker) do |pos|
+        pos.inception_date = transaction_date
+      end
+    end
 end
