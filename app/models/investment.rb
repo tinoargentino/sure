@@ -54,7 +54,7 @@ class Investment < ApplicationRecord
     cash_flows = all_transactions.map do |txn|
       {
         date: txn.transaction_date,
-        amount: -txn.amount  # Negate: Sure stores positive=outflow, IRR needs negative=outflow
+        amount: txn.amount  # Stored with correct sign: negative for buys, positive for sells
       }
     end
 
@@ -84,7 +84,7 @@ class Investment < ApplicationRecord
     cash_flows = all_transactions.map do |txn|
       {
         date: txn.transaction_date,
-        amount: -txn.amount  # Negate: Sure stores positive=outflow, IRR needs negative=outflow
+        amount: txn.amount  # Stored with correct sign: negative for buys, positive for sells
       }
     end
 

@@ -11,13 +11,11 @@ class InvestmentPosition < ApplicationRecord
     # - Returns (dividends, sells) should be POSITIVE
     # - Stock splits have NO cash flow (amount = 0), so they don't affect IRR
     #
-    # Sure system stores: positive = outflow (buys), negative = inflow (sells/dividends)
-    # IRR needs: negative = outflow (buys), positive = inflow (sells/dividends)
-    # So we negate the stored amount
+    # Amounts are stored with correct sign: negative for buys, positive for sells/dividends
     investment_transactions.order(:transaction_date).map do |txn|
       {
         date: txn.transaction_date,
-        amount: -txn.amount
+        amount: txn.amount
       }
     end
   end
