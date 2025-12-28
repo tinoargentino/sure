@@ -66,7 +66,7 @@
       <div>
         <p class="text-sm text-secondary"><%= t(".portfolio_cagr") %></p>
         <% if @portfolio_metrics[:cagr_percent].present? %>
-          <p class="text-xl font-medium <%= @portfolio_metrics[:cagr_percent] >= 0 ? 'text-success' : 'text-destructive' %>">
+          <p class="text-xl font-medium <%= @portfolio_metrics[:cagr_percent] >= 0 ? "text-success" : "text-destructive" %>">
             <%= number_to_percentage(@portfolio_metrics[:cagr_percent], precision: 2) %>
           </p>
         <% else %>
@@ -116,7 +116,7 @@
                 <p class="text-sm text-secondary"><%= t(".cagr") %></p>
                 <% position_cagr = position.cagr_percent || position.cagr %>
                 <% if position_cagr.present? %>
-                  <p class="font-medium <%= position_cagr >= 0 ? 'text-success' : 'text-destructive' %>">
+                  <p class="font-medium <%= position_cagr >= 0 ? "text-success" : "text-destructive" %>">
                     <%= number_to_percentage(position_cagr, precision: 1) %>
                   </p>
                 <% else %>
@@ -127,8 +127,8 @@
                 <p class="text-sm text-secondary">vs <%= @investment.benchmark_ticker_display %></p>
                 <% position_alpha = position.alpha %>
                 <% if position_alpha.present? %>
-                  <p class="font-medium <%= position_alpha >= 0 ? 'text-success' : 'text-destructive' %>">
-                    <%= position_alpha >= 0 ? '+' : '' %><%= number_to_percentage(position_alpha, precision: 1) %>
+                  <p class="font-medium <%= position_alpha >= 0 ? "text-success" : "text-destructive" %>">
+                    <%= position_alpha >= 0 ? "+" : "" %><%= number_to_percentage(position_alpha, precision: 1) %>
                   </p>
                 <% else %>
                   <p class="font-medium text-secondary">--</p>
@@ -167,12 +167,12 @@
               <div class="col-span-2">
                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
                   <%= case txn.transaction_type
-                      when 'buy' then 'bg-success-surface text-success'
-                      when 'sell' then 'bg-destructive-surface text-destructive'
-                      when 'dividend', 'capital_gain', 'interest' then 'bg-warning-surface text-warning'
-                      when 'other' then 'bg-destructive-surface text-destructive'
-                      when 'tax_withheld', 'fee' then 'bg-surface-inset text-secondary'
-                      else 'bg-surface-inset text-secondary'
+                      when "buy" then "bg-success-surface text-success"
+                      when "sell" then "bg-destructive-surface text-destructive"
+                      when "dividend", "capital_gain", "interest" then "bg-warning-surface text-warning"
+                      when "other" then "bg-destructive-surface text-destructive"
+                      when "tax_withheld", "fee" then "bg-surface-inset text-secondary"
+                      else "bg-surface-inset text-secondary"
                       end %>">
                   <% if txn.other? && txn.original_type %>
                     <%= icon("alert-triangle", size: "xs", class: "mr-1") %>
@@ -186,20 +186,20 @@
                 <% end %>
               </div>
               <div class="col-span-2">
-                <p class="font-medium text-primary"><%= txn.ticker || '--' %></p>
+                <p class="font-medium text-primary"><%= txn.ticker || "--" %></p>
               </div>
               <div class="col-span-2 text-right">
                 <p class="text-sm text-secondary"><%= t(".qty") %></p>
-                <p class="font-medium text-primary"><%= txn.quantity ? number_with_precision(txn.quantity, precision: 2) : '--' %></p>
+                <p class="font-medium text-primary"><%= txn.quantity ? number_with_precision(txn.quantity, precision: 2) : "--" %></p>
               </div>
               <div class="col-span-2 text-right">
                 <p class="text-sm text-secondary"><%= t(".price") %></p>
                 <p class="font-medium text-primary">
-                  <%= txn.price_per_unit ? number_to_currency(txn.price_per_unit, unit: Money::Currency.new(@account.currency).symbol) : '--' %>
+                  <%= txn.price_per_unit ? number_to_currency(txn.price_per_unit, unit: Money::Currency.new(@account.currency).symbol) : "--" %>
                 </p>
               </div>
               <div class="col-span-2 text-right">
-                <p class="font-medium <%= txn.amount >= 0 ? 'text-success' : 'text-destructive' %>">
+                <p class="font-medium <%= txn.amount >= 0 ? "text-success" : "text-destructive" %>">
                   <%= number_to_currency(txn.amount.abs, unit: Money::Currency.new(@account.currency).symbol) %>
                 </p>
               </div>

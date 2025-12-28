@@ -55,7 +55,7 @@
             <div>
               <p class="text-sm text-secondary"><%= t(".cagr") %></p>
               <% if metrics[:cagr_percent].present? %>
-                <p class="font-medium <%= metrics[:cagr_percent] >= 0 ? 'text-success' : 'text-destructive' %>">
+                <p class="font-medium <%= metrics[:cagr_percent] >= 0 ? "text-success" : "text-destructive" %>">
                   <%= number_to_percentage(metrics[:cagr_percent], precision: 1) %>
                 </p>
               <% else %>
@@ -66,8 +66,8 @@
               <p class="text-sm text-secondary">vs <%= investment.benchmark_ticker_display %></p>
               <% portfolio_alpha = investment.portfolio_alpha %>
               <% if portfolio_alpha.present? %>
-                <p class="font-medium <%= portfolio_alpha >= 0 ? 'text-success' : 'text-destructive' %>">
-                  <%= portfolio_alpha >= 0 ? '+' : '' %><%= number_to_percentage(portfolio_alpha, precision: 1) %>
+                <p class="font-medium <%= portfolio_alpha >= 0 ? "text-success" : "text-destructive" %>">
+                  <%= portfolio_alpha >= 0 ? "+" : "" %><%= number_to_percentage(portfolio_alpha, precision: 1) %>
                 </p>
               <% else %>
                 <p class="font-medium text-secondary">--</p>
