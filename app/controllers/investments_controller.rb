@@ -8,9 +8,9 @@ class InvestmentsController < ApplicationController
   def show
     @account = Current.family.accounts.find(params[:id])
     @investment = @account.accountable
-    @positions = @investment.positions_with_cagr
+    @positions = @investment.positions.sort_by { |p| -(p.current_market_value || 0) }
     @portfolio_metrics = @investment.portfolio_metrics
-    @recent_transactions = @investment.investment_transactions.order(transaction_date: :desc).limit(10)
+    @recent_transactions = @account.entries.where(entryable_type: "Trade").includes(:entryable).order(date: :desc).limit(10)
   end
 
   def update_benchmark

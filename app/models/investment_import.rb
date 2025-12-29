@@ -5,75 +5,84 @@ class InvestmentImport < Import
     transaction do
       mappings.each(&:create_mappable!)
 
-      # Group rows by investment and ticker to pre-create positions
-      positions_cache = {}
+      trades = []
+      skipped_rows = []
 
-      investment_txns = rows.map do |row|
-        mapped_investment = if account
-          account.accountable
+      rows.each do |row|
+        mapped_account = if account
+          account
         else
-          mapped_account = mappings.accounts.mappable_for(row.account)
-          mapped_account.accountable
+          mappings.accounts.mappable_for(row.account)
         end
 
-        raise "Account must be an Investment account" unless mapped_investment.is_a?(Investment)
+        raise "Account must be an Investment account" unless mapped_account.investment?
 
         # Normalize the transaction type from various brokerage formats
         raw_type = row.transaction_type.to_s
-        normalized_type = InvestmentTransaction.normalize_transaction_type(raw_type)
+        normalized_type = normalize_transaction_type(raw_type)
 
-        # Build metadata with original type if it was mapped to "other"
-        metadata = {}
-        if normalized_type == :other && raw_type.present?
-          metadata["original_type"] = raw_type.upcase
+        # Only create trades for buy/sell - skip dividends, fees, etc. for now
+        unless %i[buy sell].include?(normalized_type)
+          skipped_rows << { row: row, type: normalized_type, reason: "Only buy/sell supported" }
+          next
         end
 
-        # Determine amount based on transaction type (sign derived from type, not CSV)
-        # IRR needs: outflows (buys) negative, inflows (sells/dividends) positive
+        # Skip rows without ticker
+        unless row.ticker.present?
+          skipped_rows << { row: row, type: normalized_type, reason: "No ticker" }
+          next
+        end
+
+        # Find or create security
+        security = find_or_create_security(ticker: row.ticker)
+        next unless security
+
+        # Determine qty sign: positive for buy, negative for sell
+        qty = row.qty.to_d.abs
+        qty = -qty if normalized_type == :sell
+
+        # Price should always be positive
+        price = row.price.to_d.abs
+
+        # Amount: negative for buys (money out), positive for sells (money in)
         amount = derive_amount_from_type(row.amount, normalized_type)
 
-        # Find or create position for this ticker (skip for deposits/withdrawals)
-        position = nil
-        if row.ticker.present? && !%i[deposit withdrawal].include?(normalized_type)
-          cache_key = "#{mapped_investment.id}:#{row.ticker}"
-          position = positions_cache[cache_key] ||= mapped_investment.investment_positions.find_or_create_by!(ticker: row.ticker) do |pos|
-            pos.inception_date = row.date_iso
-          end
-        end
+        # Build trade name
+        name = Trade.build_name(normalized_type.to_s, qty, row.ticker)
 
-        InvestmentTransaction.new(
-          investment: mapped_investment,
-          investment_position: position,
-          ticker: row.ticker,
-          transaction_type: normalized_type,
-          source: :csv,
-          quantity: row.qty,
-          price_per_unit: row.price,
-          amount: amount,
-          transaction_date: row.date_iso,
-          currency: row.currency.presence || mapped_investment.account.currency,
-          external_id: row.external_id.presence,
-          notes: row.notes.presence,
-          metadata: metadata.presence
+        trades << Trade.new(
+          security: security,
+          qty: qty,
+          price: price,
+          currency: row.currency.presence || mapped_account.currency,
+          entry: Entry.new(
+            account: mapped_account,
+            date: row.date_iso,
+            amount: amount,
+            name: name,
+            currency: row.currency.presence || mapped_account.currency,
+            import: self
+          )
         )
       end
 
-      InvestmentTransaction.import!(investment_txns)
+      Trade.import!(trades, recursive: true) if trades.any?
 
-      # Update account balances based on position market values
-      update_account_balances(positions_cache.values)
+      # Sync each account to update holdings and balances
+      sync_accounts(trades)
+
+      # Log skipped rows for debugging
+      if skipped_rows.any?
+        Rails.logger.info "InvestmentImport: Skipped #{skipped_rows.count} rows (dividends, fees, etc.)"
+      end
     end
   end
 
-  def update_account_balances(positions)
-    # Group positions by investment and update each account's balance
-    positions.group_by(&:investment).each do |investment, _|
-      account = investment.account
-      next unless account
-
-      # Calculate total market value from all positions
-      total_value = investment.total_market_value_amount
-      account.update!(balance: total_value)
+  def sync_accounts(trades)
+    # Get unique accounts and trigger sync to update holdings
+    accounts = trades.map { |t| t.entry.account }.uniq
+    accounts.each do |acct|
+      acct.sync_later
     end
   end
 
@@ -167,5 +176,58 @@ class InvestmentImport < Import
 
     def set_default_amount_type_strategy
       self.amount_type_strategy ||= "signed_amount"
+    end
+
+    # Maps various brokerage transaction type formats to standardized symbols
+    # Robinhood: CDIV (cash dividend), SCAP (short-term cap gain), SPL (split), etc.
+    # Generic: BUY, SELL, DIVIDEND, SPLIT, etc.
+    def normalize_transaction_type(raw_type)
+      return :other if raw_type.blank?
+
+      case raw_type.to_s.upcase.strip
+      when "BUY", "BOUGHT", "PURCHASE", "ACH", "DEPOSIT"
+        :buy
+      when "SELL", "SOLD", "SALE"
+        :sell
+      when "DIVIDEND", "DIV", "CDIV", "QUALIFIED DIVIDEND", "ORDINARY DIVIDEND"
+        :dividend
+      when "SPLIT", "SPL", "STOCK SPLIT", "REVERSE SPLIT"
+        :stock_split
+      when "SCAP", "SHORT-TERM CAPITAL GAIN", "SHORT TERM CAPITAL GAIN", "STCG"
+        :capital_gain
+      when "LCAP", "LONG-TERM CAPITAL GAIN", "LONG TERM CAPITAL GAIN", "LTCG"
+        :capital_gain
+      when "FEE", "FEES", "COMMISSION"
+        :fee
+      when "INTEREST", "INT"
+        :interest
+      when "TAX", "TAX WITHHELD", "WITHHOLDING"
+        :tax_withheld
+      when "TRANSFER IN", "JOURNAL", "ACAT"
+        :deposit
+      when "TRANSFER OUT", "WITHDRAWAL"
+        :withdrawal
+      else
+        :other
+      end
+    end
+
+    def find_or_create_security(ticker:)
+      return nil unless ticker.present?
+
+      # Avoids resolving the same security over and over again (resolver potentially makes network calls)
+      @security_cache ||= {}
+
+      cache_key = ticker.upcase.strip
+
+      security = @security_cache[cache_key]
+
+      return security if security.present?
+
+      security = Security::Resolver.new(cache_key).resolve
+
+      @security_cache[cache_key] = security
+
+      security
     end
 end

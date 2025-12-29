@@ -1,6 +1,7 @@
 class Investment < ApplicationRecord
   include Accountable
 
+  # Legacy associations - kept for backward compatibility during migration
   has_many :investment_positions, dependent: :destroy
   has_many :investment_transactions, dependent: :destroy
 
@@ -26,63 +27,66 @@ class Investment < ApplicationRecord
       total_market_value: total_market_value_amount,
       cagr_percent: portfolio_cagr,
       inception_date: inception_date,
-      last_updated: last_calculated_at
+      last_updated: Time.current
     }
   end
 
-  def positions_with_cagr
-    investment_positions.order(cagr_percent: :desc)
+  # Returns positions grouped by security with calculated metrics
+  def positions
+    return [] unless account
+
+    account.current_holdings.map do |holding|
+      PositionPresenter.new(holding, self)
+    end
   end
 
   def total_invested_amount
-    investment_transactions
-      .where(transaction_type: [ :buy, :deposit ])
-      .sum(:amount)
-      .abs
+    return 0 unless account
+
+    # Sum of all buy trades (positive qty = buy)
+    account.trades.where("qty > 0").sum("price * qty")
   end
 
   def total_market_value_amount
-    investment_positions.sum { |pos| pos.current_market_value || 0 }
+    return 0 unless account
+
+    # Use current holdings which already have amount calculated
+    account.current_holdings.sum(:amount)
   end
 
   def portfolio_cagr
-    return nil if investment_transactions.empty?
+    entries = trade_entries
+    return nil if entries.empty?
 
-    all_transactions = investment_transactions.order(:transaction_date)
-
-    cash_flows = all_transactions.map do |txn|
+    cash_flows = entries.map do |entry|
       {
-        date: txn.transaction_date,
-        amount: txn.amount  # Stored with correct sign: negative for buys, positive for sells
+        date: entry.date,
+        amount: entry.amount  # Entry amount: negative for buys, positive for sells
       }
     end
 
-    ending_value = investment_positions.sum { |pos| pos.current_market_value || 0 }
+    ending_value = total_market_value_amount
 
     InvestmentMetrics::CagrCalculator.calculate(
       cash_flows: cash_flows,
       ending_value: ending_value,
-      inception_date: all_transactions.first.transaction_date
+      inception_date: entries.first.date
     )
   end
 
   def inception_date
-    investment_transactions.order(:transaction_date).first&.transaction_date
-  end
-
-  def last_calculated_at
-    investment_positions.maximum(:cagr_calculated_at) || Time.current
+    return nil unless account
+    account.entries.where(entryable_type: "Trade").minimum(:date)
   end
 
   def portfolio_benchmark_cagr
-    return nil if investment_transactions.empty?
+    entries = trade_entries
+    return nil if entries.empty?
 
-    all_transactions = investment_transactions.order(:transaction_date)
-
-    cash_flows = all_transactions.map do |txn|
+    cash_flows = entries.map do |entry|
       {
-        date: txn.transaction_date,
-        amount: txn.amount  # Stored with correct sign: negative for buys, positive for sells
+        date: entry.date,
+        amount: entry.amount
       }
     end
 
@@ -118,4 +122,99 @@ class Investment < ApplicationRecord
       "chart-line"
     end
   end
+
+  private
+
+    def trade_entries
+      return [] unless account
+      account.entries.where(entryable_type: "Trade").order(:date)
+    end
+
+    # Presenter class to wrap Holding with CAGR calculations
+    class PositionPresenter
+      attr_reader :holding, :investment
+
+      delegate :ticker, :qty, :amount, :price, :security, to: :holding
+
+      def initialize(holding, investment)
+        @holding = holding
+        @investment = investment
+      end
+
+      def current_quantity
+        qty
+      end
+
+      def current_market_value
+        amount
+      end
+
+      def estimated_current_price
+        security&.current_price&.amount || price
+      end
+
+      def cagr
+        return nil unless investment.account
+
+        # Get all trades for this security
+        trades_for_security = investment.account.entries
+          .joins("INNER JOIN trades ON trades.id = entries.entryable_id AND entries.entryable_type = 'Trade'")
+          .where(trades: { security_id: security.id })
+          .order(:date)
+
+        return nil if trades_for_security.empty?
+
+        cash_flows = trades_for_security.map do |entry|
+          { date: entry.date, amount: entry.amount }
+        end
+
+        InvestmentMetrics::CagrCalculator.calculate(
+          cash_flows: cash_flows,
+          ending_value: amount,
+          inception_date: trades_for_security.first.date
+        )
+      end
+
+      def cagr_percent
+        cagr
+      end
+
+      def alpha
+        position_cagr = cagr
+        return nil if position_cagr.nil?
+
+        # Get benchmark return for same cash flows
+        trades_for_security = investment.account.entries
+          .joins("INNER JOIN trades ON trades.id = entries.entryable_id AND entries.entryable_type = 'Trade'")
+          .where(trades: { security_id: security.id })
+          .order(:date)
+
+        cash_flows = trades_for_security.map do |entry|
+          { date: entry.date, amount: entry.amount }
+        end
+
+        benchmark_cagr = InvestmentMetrics::BenchmarkCalculator.calculate_benchmark_return(
+          cash_flows: cash_flows,
+          benchmark_ticker: investment.benchmark_ticker || "SPY"
+        )
+
+        return nil if benchmark_cagr.nil?
+
+        (position_cagr - benchmark_cagr).round(2)
+      end
+
+      def inception_date
+        return nil unless investment.account
+
+        investment.account.entries
+          .joins("INNER JOIN trades ON trades.id = entries.entryable_id AND entries.entryable_type = 'Trade'")
+          .where(trades: { security_id: security.id })
+          .minimum(:date)
+      end
+
+      def investment_transactions
+        # For compatibility - return trades as a relation-like object
+        investment.account.trades.where(security_id: security.id)
+      end
+    end
 end

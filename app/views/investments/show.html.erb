@@ -107,9 +107,9 @@
                 <p class="font-medium text-primary"><%= number_with_precision(position.current_quantity, precision: 2) %></p>
               </div>
               <div class="col-span-2 text-right">
-                <p class="text-sm text-secondary"><%= t(".cost_basis") %></p>
+                <p class="text-sm text-secondary"><%= t(".current_value") %></p>
                 <p class="font-medium text-primary">
-                  <%= number_to_currency(position.cost_basis_total, unit: Money::Currency.new(@account.currency).symbol) %>
+                  <%= number_to_currency(position.current_market_value || 0, unit: Money::Currency.new(@account.currency).symbol) %>
                 </p>
               </div>
               <div class="col-span-2 text-right">
@@ -158,49 +158,36 @@
 
     <% if @recent_transactions.any? %>
       <div class="divide-y divide-primary">
-        <% @recent_transactions.each do |txn| %>
+        <% @recent_transactions.each do |entry| %>
+          <% trade = entry.entryable %>
           <div class="p-4 hover:bg-surface-inset transition-colors">
             <div class="grid grid-cols-12 gap-4 items-center">
               <div class="col-span-2">
-                <p class="text-sm text-primary"><%= txn.transaction_date.strftime("%b %d, %Y") %></p>
+                <p class="text-sm text-primary"><%= entry.date.strftime("%b %d, %Y") %></p>
               </div>
               <div class="col-span-2">
+                <% trade_type = trade.qty >= 0 ? "buy" : "sell" %>
                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
-                  <%= case txn.transaction_type
-                      when "buy" then "bg-success-surface text-success"
-                      when "sell" then "bg-destructive-surface text-destructive"
-                      when "dividend", "capital_gain", "interest" then "bg-warning-surface text-warning"
-                      when "other" then "bg-destructive-surface text-destructive"
-                      when "tax_withheld", "fee" then "bg-surface-inset text-secondary"
-                      else "bg-surface-inset text-secondary"
-                      end %>">
-                  <% if txn.other? && txn.original_type %>
-                    <%= icon("alert-triangle", size: "xs", class: "mr-1") %>
-                    <%= txn.original_type %>
-                  <% else %>
-                    <%= t(".transaction_types.#{txn.transaction_type}") %>
-                  <% end %>
+                  <%= trade_type == "buy" ? "bg-success-surface text-success" : "bg-destructive-surface text-destructive" %>">
+                  <%= t(".transaction_types.#{trade_type}") %>
                 </span>
-                <% if txn.needs_review? %>
-                  <p class="text-xs text-destructive mt-1"><%= t(".needs_review") %></p>
-                <% end %>
               </div>
               <div class="col-span-2">
-                <p class="font-medium text-primary"><%= txn.ticker || "--" %></p>
+                <p class="font-medium text-primary"><%= trade.security&.ticker || "--" %></p>
               </div>
               <div class="col-span-2 text-right">
                 <p class="text-sm text-secondary"><%= t(".qty") %></p>
-                <p class="font-medium text-primary"><%= txn.quantity ? number_with_precision(txn.quantity, precision: 2) : "--" %></p>
+                <p class="font-medium text-primary"><%= number_with_precision(trade.qty.abs, precision: 2) %></p>
               </div>
               <div class="col-span-2 text-right">
                 <p class="text-sm text-secondary"><%= t(".price") %></p>
                 <p class="font-medium text-primary">
-                  <%= txn.price_per_unit ? number_to_currency(txn.price_per_unit, unit: Money::Currency.new(@account.currency).symbol) : "--" %>
+                  <%= number_to_currency(trade.price, unit: Money::Currency.new(@account.currency).symbol) %>
                 </p>
               </div>
               <div class="col-span-2 text-right">
-                <p class="font-medium <%= txn.amount >= 0 ? "text-success" : "text-destructive" %>">
-                  <%= number_to_currency(txn.amount.abs, unit: Money::Currency.new(@account.currency).symbol) %>
+                <p class="font-medium <%= entry.amount >= 0 ? "text-success" : "text-destructive" %>">
+                  <%= number_to_currency(entry.amount.abs, unit: Money::Currency.new(@account.currency).symbol) %>
                 </p>
               </div>
             </div>

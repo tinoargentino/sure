@@ -28,7 +28,7 @@ en:
       total_invested: Total Invested
       current_value: Current Value
       portfolio_cagr: Portfolio CAGR
-      inception_date: Since
+      inception_date: First Transaction
       positions: Positions
       positions_count:
         one: "%{count} position"
