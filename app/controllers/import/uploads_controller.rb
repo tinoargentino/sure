@@ -15,7 +15,10 @@ class Import::UploadsController < ApplicationController
 
   def update
     if csv_valid?(csv_str)
-      @import.account = Current.family.accounts.find_by(id: params.dig(:import, :account_id))
+      # Only update account if explicitly provided (don't overwrite existing with nil)
+      if params.dig(:import, :account_id).present?
+        @import.account = Current.family.accounts.find_by(id: params.dig(:import, :account_id))
+      end
       @import.assign_attributes(raw_file_str: csv_str, col_sep: upload_params[:col_sep])
       @import.save!(validate: false)
 
