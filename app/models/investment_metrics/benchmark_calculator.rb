@@ -104,6 +104,15 @@ module InvestmentMetrics
 
       def benchmark_price_on(ticker, date)
         ticker = ticker.upcase
+
+        # Try to get from Security model first (uses provider API if configured)
+        security = Security.find_by(ticker: ticker)
+        if security.present?
+          price_record = security.find_or_fetch_price(date: date, cache: true)
+          return price_record.price.to_f if price_record&.price.present?
+        end
+
+        # Fallback to hardcoded prices
         prices = BENCHMARK_PRICES[ticker]
         return nil unless prices
 
@@ -136,6 +145,14 @@ module InvestmentMetrics
 
       def current_price(ticker)
         ticker = ticker.upcase
+
+        # Try to get from Security model first (uses provider API if configured)
+        security = Security.find_by(ticker: ticker)
+        if security&.current_price.present?
+          return security.current_price.amount.to_f
+        end
+
+        # Fallback to hardcoded prices
         prices = BENCHMARK_PRICES[ticker]
         return nil unless prices
 

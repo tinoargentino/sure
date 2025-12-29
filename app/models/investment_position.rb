@@ -61,17 +61,20 @@ class InvestmentPosition < ApplicationRecord
   end
 
   def estimated_current_price
-    # TODO: Integrate with real-time price API (Yahoo Finance, Alpha Vantage, etc.)
-    # For now, use manually maintained prices for testing/development
-    current_prices = {
-      "TSLA" => 475.19,
-      "GOOGL" => 313.51,
-      "AAPL" => 273.40,
-      "MSFT" => 487.71,
-      "VTI" => 339.67
-    }
+    # Try to get price from Security model (uses provider API if configured)
+    security = Security.find_by(ticker: ticker.upcase)
 
-    current_prices[ticker]
+    if security&.current_price.present?
+      return security.current_price.amount.to_f
+    end
+
+    # Fallback: use the most recent transaction price for this position
+    last_priced_txn = investment_transactions
+      .where.not(price_per_unit: [nil, 0])
+      .order(transaction_date: :desc)
+      .first
+
+    last_priced_txn&.price_per_unit&.to_f
   end
 
   def recalculate_cagr
